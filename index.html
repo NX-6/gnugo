@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>GNU Go</title>
+    <link rel="stylesheet" href="index.css">
+  </head>
+  <body>
+    <div id="root">
+      <div class="controls">
+        <div>
+          <select id="links">
+            <option value="none" selected>GNU Go</option>
+            <option value="https://www.gnu.org/software/gnugo/">homepage</option>
+            <option value="https://www.gnu.org/software/gnugo/gnugo_toc.html">docs</option>
+            <option value="https://www.gnu.org/software/gnugo/gnugo_19.html#SEC192">docs/GTP</option>
+          </select>
+        </div>
+        <div>
+          <span>boardsize</span>
+          <select id="boardsize">
+            <option value="19">19</option>
+            <option value="13">13</option>
+            <option value="9">9</option>
+          </select>
+        </div>
+        <div>
+          <span>level</span>
+          <select id="level">
+            <option value="10">10</option>
+            <option value="9">9</option>
+            <option value="8">8</option>
+            <option value="7">7</option>
+            <option value="6">6</option>
+            <option value="5">5</option>
+            <option value="4">4</option>
+            <option value="3">3</option>
+            <option value="2">2</option>
+            <option value="1">1</option>
+          </select>
+        </div>
+      </div>
+
+      <textarea id="output" cols="30" rows="10" placeholder="GTP output" disabled></textarea>
+
+      <div class="controls">
+        <div>
+          <span>play</span>
+          <input type="text" id="play">
+          <button id="playBlack">B</button>
+          <button id="playWhite">W</button>
+        </div>
+        <div>
+          <span>genmove</span>
+          <button id="genmoveBlack">B</button>
+          <button id="genmoveWhite">W</button>
+        </div>
+        <div>
+          <button id="showboard">showboard</button>
+          <input type="checkbox" id="showboardAuto" name="showboardAuto" checked>
+          <label for="showboardAuto">auto</label>
+        </div>
+        <div>
+          <span>loadsgf</span>
+          <select id="loadsgf">
+            <option value="none">select</option>
+            <option value="15820101-HSansa-KRigen.sgf">15820101-HSansa-KRigen.sgf</option>
+            <option value="20160309-LSedol-AlphaGo.sgf">20160309-LSedol-AlphaGo.sgf</option>
+          </select>
+        </div>
+      </div>
+
+      <form id="input">
+        <input type="text" id="command" name="command" placeholder="starting GNU Go..." disabled>
+      </form>
+    </div>
+
+    <script type="text/javascript">
+      let gnugoWorker = new Worker("js/gnugo-worker.js");
+
+      const linksSelect = document.getElementById("links");
+      const boardsizeSelect = document.getElementById("boardsize");
+      const levelSelect = document.getElementById("level");
+
+      const outTextarea = document.getElementById("output");
+      const inputForm = document.getElementById("input");
+      const cmdInput = document.getElementById("command");
+
+      const playInput = document.getElementById("play");
+      const playBlackButton = document.getElementById("playBlack");
+      const playWhiteButton = document.getElementById("playWhite");
+      const genmoveBlackButton = document.getElementById("genmoveBlack");
+      const genmoveWhiteButton = document.getElementById("genmoveWhite");
+      const showboardButton = document.getElementById("showboard");
+      const showboardCheckbox = document.getElementById("showboardAuto");
+      const loadsgfSelect = document.getElementById("loadsgf");
+
+      function writeTextarea(outStr) {
+        outTextarea.value += outStr + "\n";
+        outTextarea.scrollTop = outTextarea.scrollHeight;
+      }
+
+      function dispatchMessage(cmdStr) {
+        gnugoWorker.postMessage(cmdStr);
+      }
+
+      function dispatchCommand(cmdStr) {
+        const cmdLine = cmdStr + "\n";
+        writeTextarea(cmdStr);
+        dispatchMessage(cmdLine);
+      }
+
+      function play(color) {
+        dispatchCommand("play " + color + " " + playInput.value);
+        if (showboardCheckbox.checked) dispatchCommand("showboard");
+        playInput.value = "";
+      }
+
+      function genmove(color) {
+        dispatchCommand("genmove" + " " + color);
+        if (showboardCheckbox.checked) dispatchCommand("showboard");
+      }
+
+      function loadsgf(sgfFile) {
+        gnugoWorker.postMessage({
+            cmd: "loadsgf",
+            file: sgfFile,
+            url: "/sgf_files/" + sgfFile,
+            then: "showboard"
+          }
+        );
+      }
+
+      gnugoWorker.onmessage = ({data}) => {
+        if (typeof data == "string")
+          writeTextarea(data);
+        else
+          switch(data.type) {
+            case "status":
+              cmdInput.removeAttribute("disabled");
+              cmdInput.setAttribute("placeholder", "GTP command");
+              cmdInput.focus();
+              break;
+            default:
+              console.log(data);
+          }
+      };
+      gnugoWorker.postMessage({cmd: "init"});
+
+      linksSelect.onchange = ev => {
+        window.open(linksSelect.value);
+        linksSelect.value = "none";
+      };
+
+      boardsizeSelect.onchange = ev => {
+        dispatchCommand("boardsize " + boardsizeSelect.value);
+        dispatchCommand("showboard");
+      };
+
+      levelSelect.onchange = ev => {
+        dispatchCommand("level " + levelSelect.value);
+      };
+
+      inputForm.onsubmit = ev => {
+        ev.preventDefault();
+        dispatchMessage(cmdInput.value)
+        cmdInput.value = "";
+      };
+
+      playBlackButton.onclick = _ => play("black");
+      playWhiteButton.onclick = _ => play("white");
+      genmoveBlackButton.onclick = _ => genmove("black");
+      genmoveWhiteButton.onclick = _ => genmove("white");
+      showboardButton.onclick = _ => dispatchCommand("showboard");
+      loadsgfSelect.onchange = _ => loadsgf(loadsgfSelect.value);
+    </script>
+  </body>
+</html>
