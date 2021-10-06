@@ -29,6 +29,7 @@ RUN emcc -o /out/gnugo.js \
          -s DEMANGLE_SUPPORT=1 \
          -s INITIAL_MEMORY=33554432 \
          -s ALLOW_MEMORY_GROWTH=1 \
+         -s EXPORTED_RUNTIME_METHODS=FS,ccall \
          --use-preload-plugins \
          -DHAVE_CONFIG_H \
          -I /gg-emcc \
@@ -38,6 +39,7 @@ RUN emcc -o /out/gnugo.js \
          -I /gg-emcc/engine \
          -I /gg-emcc/interface \
          /gg-emcc/api.c \
+         /gg-emcc/interface/*.c \
          /gg-emcc/engine/*.c \
          /gg-emcc/utils/getopt.c \
          /gg-emcc/utils/getopt1.c \
