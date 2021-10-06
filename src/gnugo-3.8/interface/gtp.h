@@ -68,6 +68,8 @@ struct gtp_command {
   gtp_fn_ptr function;
 };
 
+int  gtp_handle_line(char line[]);
+int  gtp_handle_line_cmds(struct gtp_command commands[], char line[]);
 void gtp_main_loop(struct gtp_command commands[],
                    FILE *gtp_input, FILE *gtp_output, FILE *gtp_dump_commands);
 void gtp_internal_set_boardsize(int size);
@@ -76,13 +78,13 @@ void gtp_set_vertex_transform_hooks(gtp_transform_ptr in,
 void gtp_mprintf(const char *format, ...);
 void gtp_printf(const char *format, ...);
 void gtp_start_response(int status);
-int gtp_finish_response(void);
-int gtp_success(const char *format, ...);
-int gtp_failure(const char *format, ...);
+int  gtp_finish_response(void);
+int  gtp_success(const char *format, ...);
+int  gtp_failure(const char *format, ...);
 void gtp_panic(void);
-int gtp_decode_color(char *s, int *color);
-int gtp_decode_coord(char *s, int *m, int *n);
-int gtp_decode_move(char *s, int *color, int *i, int *j);
+int  gtp_decode_color(char *s, int *color);
+int  gtp_decode_coord(char *s, int *m, int *n);
+int  gtp_decode_move(char *s, int *color, int *i, int *j);
 void gtp_print_vertices(int n, int movei[], int movej[]);
 void gtp_print_vertex(int i, int j);
 

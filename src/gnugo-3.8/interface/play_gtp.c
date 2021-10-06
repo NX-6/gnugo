@@ -21,6 +21,10 @@
  * Boston, MA 02111, USA.                                            *
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+#if defined(__EMSCRIPTEN__)
+#include "emscripten.h"
+#endif
+
 #include "gnugo.h"
 
 #include <stdio.h>
@@ -326,6 +330,11 @@ static struct gtp_command commands[] = {
   {NULL,                            NULL}
 };
 
+int
+gtp_handle_line(char line[]) {
+  return gtp_handle_line_cmds(commands, line);
+}
+
 /* Start playing using the Go Text Protocol. */
 void
 play_gtp(FILE *gtp_input, FILE *gtp_output, FILE *gtp_dump_commands,
@@ -350,9 +359,13 @@ play_gtp(FILE *gtp_input, FILE *gtp_output, FILE *gtp_dump_commands,
   reset_engine();
   clearstats();
 
+  #ifdef __EMSCRIPTEN__
+  gtp_output_file = gtp_output;
+  #else
   gtp_main_loop(commands, gtp_input, gtp_output, gtp_dump_commands);
   if (showstatistics)
     showstats();
+  #endif
 }
 
 
