@@ -76,9 +76,8 @@
       </form>
     </div>
 
-    <script type="text/javascript" src="js/gnugo.js"></script>
     <script type="text/javascript">
-      let gnugoInstance;
+      let gnugoWorker = new Worker("js/gnugo-worker.js");
 
       const linksSelect = document.getElementById("links");
       const boardsizeSelect = document.getElementById("boardsize");
@@ -103,15 +102,13 @@
       }
 
       function dispatchMessage(cmdStr) {
-        gnugoInstance.ccall("post_gtp", "int", ["string"], [cmdStr]);
+        gnugoWorker.postMessage(cmdStr);
       }
 
       function dispatchCommand(cmdStr) {
         const cmdLine = cmdStr + "\n";
         writeTextarea(cmdStr);
-
-        // allow time for textarea to update before blocking UI
-        setTimeout(_ => dispatchMessage(cmdLine), 100);
+        dispatchMessage(cmdLine);
       }
 
       function play(color) {
@@ -126,13 +123,30 @@
       }
 
       function loadsgf(sgfFile) {
-        fetch("sgf_files/" + sgfFile).then(res => res.text())
-        .then(sgfText => {
-          gnugoInstance.FS.writeFile(sgfFile, sgfText);
-          dispatchCommand("loadsgf " + sgfFile);
-          dispatchCommand("showboard");
-        });
+        gnugoWorker.postMessage({
+            cmd: "loadsgf",
+            file: sgfFile,
+            url: "../sgf_files/" + sgfFile,
+            then: "showboard"
+          }
+        );
       }
+
+      gnugoWorker.onmessage = ({data}) => {
+        if (typeof data == "string")
+          writeTextarea(data);
+        else
+          switch(data.type) {
+            case "status":
+              cmdInput.removeAttribute("disabled");
+              cmdInput.setAttribute("placeholder", "GTP command");
+              cmdInput.focus();
+              break;
+            default:
+              console.log(data);
+          }
+      };
+      gnugoWorker.postMessage({cmd: "init"});
 
       linksSelect.onchange = ev => {
         window.open(linksSelect.value);
@@ -160,28 +174,6 @@
       genmoveWhiteButton.onclick = _ => genmove("white");
       showboardButton.onclick = _ => dispatchCommand("showboard");
       loadsgfSelect.onchange = _ => loadsgf(loadsgfSelect.value);
-
-      GnuGo({
-        preRun: ({FS}) => {
-          let outBuf = "";
-          function stdout(char) {
-            switch (char) {
-              case 0:
-              case 0x0a: writeTextarea(outBuf); outBuf = ""; return;
-              case 0x0d: return;
-              default:   outBuf += String.fromCharCode(char);
-            }
-          }
-          FS.init(null, stdout, stdout);
-        },
-        arguments: [ "--mode", "gtp" ]
-      }).then(gg => {
-        gnugoInstance = gg;
-        cmdInput.removeAttribute("disabled");
-        cmdInput.setAttribute("placeholder", "GTP command");
-        cmdInput.focus();
-      });
-
     </script>
   </body>
 </html>
