@@ -1,0 +1,14 @@
+name: build-artifacts
+on: [push]
+
+jobs:
+  build-gnugo-js:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: .github/workflows/build-img.sh emcc ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v2
+        with:
+          name: gnugo-js
+          path: out/
+          retention-days: 1
